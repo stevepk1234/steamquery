@@ -1,5 +1,5 @@
 FROM python:3.13-slim
-WORKDIR /
+WORKDIR /app
 
 # Install Dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -14,4 +14,4 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable
 
-CMD ["fastapi", "run", "--workers", "4", "main.py"]
+CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
