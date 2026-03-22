@@ -19,6 +19,7 @@ FROM nginx:alpine
 # copy the built files from the 'build' stage on nginx's web directory
 # default nginx web directory is typically /usr/share/nginx/html
 COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # expose port 80, default HTTP port for nginx
 EXPOSE 80
