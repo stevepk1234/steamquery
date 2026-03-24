@@ -1,6 +1,26 @@
 import { useState } from "react";
 import "./App.css";
 
+const DEAD_SPACE_REPLY = {
+  role: "bot",
+  type: "recommendation",
+  intro: "Here are my top picks based on your request:",
+  games: [
+    {
+      appId: 1693980,
+      name: "Dead Space",
+      blurb:
+        "A survival horror classic. You're engineer Isaac Clarke, stranded on a mining ship overrun by grotesque necromorphs. Strategic dismemberment, zero-gravity combat, and relentless atmosphere make this a must-play.",
+    },
+    {
+      appId: 2101960,
+      name: "Cronos: The New Dawn",
+      blurb: "A whole new breed of survival horror emerges with Cronos: The New Dawn. Survive the brutal wastelands of the future, fight nightmarish merging creatures and jump back in time to harvest souls as you seek to uncover the origins of the apocalypse that wiped out humanity.",
+    },
+  ],
+  note: "Each result includes rating, price, tags, related games, and a direct Steam store link.",
+};
+
 function App() {
   const [messages, setMessages] = useState([
     {
@@ -14,7 +34,7 @@ function App() {
     const text = input.trim();
     if (!text) return;
 
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    setMessages((prev) => [...prev, { role: "user", text }, DEAD_SPACE_REPLY]);
     setInput("");
   }
 
@@ -43,37 +63,68 @@ function App() {
       </div>
 
       <div className="chat-area">
-        {messages.map((msg, i) => (
-          <div key={i} className={`message ${msg.role}`}>
-            <div
-              className={`avatar ${msg.role === "bot" ? "bot-avatar" : "user-avatar"}`}
-            >
-              {msg.role === "bot" ? "SR" : "You"}
+        <div className="chat-column">
+          {messages.map((msg, i) => (
+            <div key={i} className={`message ${msg.role}`}>
+              <div
+                className={`avatar ${msg.role === "bot" ? "bot-avatar" : "user-avatar"}`}
+              >
+                {msg.role === "bot" ? "SR" : "You"}
+              </div>
+              <div
+                className={`bubble ${msg.role === "bot" ? "bot-bubble" : "user-bubble"}`}
+              >
+                {msg.type === "recommendation" ? (
+                  <>
+                    <p className="rec-intro">{msg.intro}</p>
+                    <div className="game-chips">
+                      {msg.games.map((g) => (
+                        <a
+                          key={g.appId}
+                          className="game-chip"
+                          href={`https://store.steampowered.com/app/${g.appId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <img
+                            className="chip-art"
+                            src={`https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg`}
+                            alt={g.name}
+                            loading="lazy"
+                          />
+                          <span className="chip-name">{g.name}</span>
+                          <span className="chip-blurb">{g.blurb}</span>
+                        </a>
+                      ))}
+                    </div>
+                    <p className="rec-note">{msg.note}</p>
+                  </>
+                ) : (
+                  msg.text
+                )}
+              </div>
             </div>
-            <div
-              className={`bubble ${msg.role === "bot" ? "bot-bubble" : "user-bubble"}`}
-            >
-              {msg.text}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       <div className="input-bar">
-        <input
-          type="text"
-          placeholder="Describe a game you'd like to play..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <button
-          className="send-button"
-          onClick={handleSend}
-          disabled={!input.trim()}
-        >
-          ↑
-        </button>
+        <div className="input-inner">
+          <input
+            type="text"
+            placeholder="Describe a game you'd like to play..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <button
+            className="send-button"
+            onClick={handleSend}
+            disabled={!input.trim()}
+          >
+            ↑
+          </button>
+        </div>
       </div>
     </>
   );
