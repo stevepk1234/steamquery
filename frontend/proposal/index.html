@@ -1,649 +1,1162 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Steam Game Recommender — DBMS Project</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-  <meta name="description" content="AI-powered Steam game recommendations using natural language queries and a curated database." />
-  <style>
-    /* ── Steam-themed design system ── */
-    :root {
-      --bg:            #1b2838;
-      --bg-alt:        #171d25;
-      --bg-card:       #16202d;
-      --bg-card-hover: #1e2d3d;
-      --surface:       #2a475e;
-      --border:        #3d5a8a;
-      --border-faint:  rgba(61, 90, 138, 0.35);
-      --accent:        #66c0f4;
-      --accent-bright: #1a9fff;
-      --accent-dim:    #4fa3d4;
-      --text:          #c6d4df;
-      --text-muted:    #7a9bb5;
-      --text-bright:   #ffffff;
-    }
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Steam Game Recommender — DBMS Project</title>
+        <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+        <meta
+            name="description"
+            content="AI-powered Steam game recommendations using natural language queries and a curated database."
+        />
+        <style>
+            /* ── Steam-themed design system ── */
+            :root {
+                --bg: #1b2838;
+                --bg-alt: #171d25;
+                --bg-card: #16202d;
+                --bg-card-hover: #1e2d3d;
+                --surface: #2a475e;
+                --border: #3d5a8a;
+                --border-faint: rgba(61, 90, 138, 0.35);
+                --accent: #66c0f4;
+                --accent-bright: #1a9fff;
+                --accent-dim: #4fa3d4;
+                --text: #c6d4df;
+                --text-muted: #7a9bb5;
+                --text-bright: #ffffff;
+            }
 
-    *, *::before, *::after { box-sizing: border-box; }
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+            }
 
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 15px;
-      line-height: 1.65;
-      color: var(--text);
-      background: var(--bg);
-    }
+            body {
+                margin: 0;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 15px;
+                line-height: 1.65;
+                color: var(--text);
+                background: var(--bg);
+            }
 
-    .container { width: min(1100px, calc(100% - 40px)); margin: 0 auto; }
+            .container {
+                width: min(1100px, calc(100% - 40px));
+                margin: 0 auto;
+            }
 
-    /* ── Top nav bar ── */
-    .topbar {
-      background: var(--bg-alt);
-      border-bottom: 1px solid var(--border-faint);
-      padding: 10px 0;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .topbar-inner {
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    }
-    .logo {
-      display: flex; align-items: center; gap: 10px;
-      text-decoration: none; color: var(--text-bright);
-    }
-    .logo svg { flex-shrink: 0; }
-    .logo-text { font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
-    .logo-text span { color: var(--accent); }
-    .nav-links { display: flex; gap: 2px; }
-    .nav-links a {
-      color: var(--text-muted); text-decoration: none; font-size: 13px;
-      padding: 6px 12px; border-radius: 4px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .nav-links a:hover { color: var(--text-bright); background: rgba(255,255,255,0.06); }
+            /* ── Top nav bar ── */
+            .topbar {
+                background: var(--bg-alt);
+                border-bottom: 1px solid var(--border-faint);
+                padding: 10px 0;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+            .topbar-inner {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+            }
+            .logo {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                text-decoration: none;
+                color: var(--text-bright);
+            }
+            .logo svg {
+                flex-shrink: 0;
+            }
+            .logo-text {
+                font-size: 16px;
+                font-weight: 700;
+                letter-spacing: 0.02em;
+            }
+            .logo-text span {
+                color: var(--accent);
+            }
+            .nav-links {
+                display: flex;
+                gap: 2px;
+            }
+            .nav-links a {
+                color: var(--text-muted);
+                text-decoration: none;
+                font-size: 13px;
+                padding: 6px 12px;
+                border-radius: 4px;
+                transition:
+                    color 0.15s,
+                    background 0.15s;
+            }
+            .nav-links a:hover {
+                color: var(--text-bright);
+                background: rgba(255, 255, 255, 0.06);
+            }
 
-    /* ── Hero ── */
-    header {
-      background: linear-gradient(160deg, #0d1821 0%, #1b2838 45%, #1c3a5c 100%);
-      border-bottom: 1px solid var(--border);
-      padding: 72px 0 64px;
-      position: relative;
-      overflow: hidden;
-    }
-    header::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(circle at 75% 50%, rgba(26,159,255,0.07) 0%, transparent 65%);
-      pointer-events: none;
-    }
-    .hero-eyebrow {
-      display: inline-block;
-      background: var(--accent-bright);
-      color: #fff;
-      font-size: 11px; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      padding: 3px 10px; border-radius: 3px;
-      margin-bottom: 20px;
-    }
-    h1 {
-      margin: 0 0 20px;
-      font-size: clamp(32px, 6vw, 56px);
-      font-weight: 900;
-      color: var(--text-bright);
-      line-height: 1.08;
-      letter-spacing: -1px;
-    }
-    h1 em { font-style: normal; color: var(--accent); }
-    .hero-sub {
-      margin: 0 0 38px;
-      color: var(--text);
-      max-width: 58ch;
-      font-size: 16px;
-      line-height: 1.75;
-    }
-    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+            /* ── Hero ── */
+            header {
+                background: linear-gradient(
+                    160deg,
+                    #0d1821 0%,
+                    #1b2838 45%,
+                    #1c3a5c 100%
+                );
+                border-bottom: 1px solid var(--border);
+                padding: 72px 0 64px;
+                position: relative;
+                overflow: hidden;
+            }
+            header::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background-image: radial-gradient(
+                    circle at 75% 50%,
+                    rgba(26, 159, 255, 0.07) 0%,
+                    transparent 65%
+                );
+                pointer-events: none;
+            }
+            .hero-eyebrow {
+                display: inline-block;
+                background: var(--accent-bright);
+                color: #fff;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                padding: 3px 10px;
+                border-radius: 3px;
+                margin-bottom: 20px;
+            }
+            h1 {
+                margin: 0 0 20px;
+                font-size: clamp(32px, 6vw, 56px);
+                font-weight: 900;
+                color: var(--text-bright);
+                line-height: 1.08;
+                letter-spacing: -1px;
+            }
+            h1 em {
+                font-style: normal;
+                color: var(--accent);
+            }
+            .hero-sub {
+                margin: 0 0 38px;
+                color: var(--text);
+                max-width: 58ch;
+                font-size: 16px;
+                line-height: 1.75;
+            }
+            .hero-actions {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
 
-    /* ── Buttons ── */
-    .btn-green {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 24px; border-radius: 3px;
-      background: linear-gradient(to bottom, #72b83f, #5c9a2c);
-      border: 1px solid #4e8526;
-      color: #fff; text-decoration: none; font-weight: 700; font-size: 14px;
-      letter-spacing: 0.02em;
-      transition: filter 0.15s;
-      white-space: nowrap;
-    }
-    .btn-green:hover { filter: brightness(1.12); }
+            /* ── Buttons ── */
+            .btn-green {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 24px;
+                border-radius: 3px;
+                background: linear-gradient(to bottom, #72b83f, #5c9a2c);
+                border: 1px solid #4e8526;
+                color: #fff;
+                text-decoration: none;
+                font-weight: 700;
+                font-size: 14px;
+                letter-spacing: 0.02em;
+                transition: filter 0.15s;
+                white-space: nowrap;
+            }
+            .btn-green:hover {
+                filter: brightness(1.12);
+            }
 
-    .btn-ghost {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 24px; border-radius: 3px;
-      background: rgba(103, 193, 245, 0.08);
-      border: 1px solid var(--border);
-      color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-      white-space: nowrap;
-    }
-    .btn-ghost:hover { background: rgba(103,193,245,0.15); border-color: var(--accent-dim); color: var(--text-bright); }
+            .btn-ghost {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 12px 24px;
+                border-radius: 3px;
+                background: rgba(103, 193, 245, 0.08);
+                border: 1px solid var(--border);
+                color: var(--accent);
+                text-decoration: none;
+                font-weight: 600;
+                font-size: 14px;
+                transition:
+                    background 0.15s,
+                    border-color 0.15s,
+                    color 0.15s;
+                white-space: nowrap;
+            }
+            .btn-ghost:hover {
+                background: rgba(103, 193, 245, 0.15);
+                border-color: var(--accent-dim);
+                color: var(--text-bright);
+            }
 
-    /* ── Sections ── */
-    main { padding-bottom: 72px; }
+            /* ── Sections ── */
+            main {
+                padding-bottom: 72px;
+            }
 
-    section { padding: 60px 0; border-bottom: 1px solid var(--border-faint); }
-    section:last-child { border-bottom: none; }
+            section {
+                padding: 60px 0;
+                border-bottom: 1px solid var(--border-faint);
+            }
+            section:last-child {
+                border-bottom: none;
+            }
 
-    .section-label {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
-    }
-    h2 { margin: 0 0 10px; font-size: 28px; font-weight: 800; color: var(--text-bright); }
-    .section-desc { color: var(--text-muted); max-width: 55ch; margin: 0 0 40px; font-size: 15px; }
+            .section-label {
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: var(--accent);
+                margin-bottom: 10px;
+            }
+            h2 {
+                margin: 0 0 10px;
+                font-size: 28px;
+                font-weight: 800;
+                color: var(--text-bright);
+            }
+            .section-desc {
+                color: var(--text-muted);
+                max-width: 55ch;
+                margin: 0 0 40px;
+                font-size: 15px;
+            }
 
-    /* ── Pipeline ── */
-    .pipeline {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1px;
-      background: var(--border-faint);
-      border: 1px solid var(--border-faint);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .step {
-      background: var(--bg-card);
-      padding: 32px 28px;
-      position: relative;
-      transition: background 0.2s;
-    }
-    .step:hover { background: var(--bg-card-hover); }
-    .step-num {
-      font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
-      text-transform: uppercase; color: var(--accent); margin-bottom: 18px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .step-num::after {
-      content: ''; flex: 1; height: 1px; background: var(--border-faint);
-    }
-    .step-icon { font-size: 30px; margin-bottom: 16px; display: block; }
-    .step-title { font-size: 15px; font-weight: 700; color: var(--text-bright); margin-bottom: 10px; }
-    .step-desc { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+            /* ── Pipeline ── */
+            .pipeline {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 1px;
+                background: var(--border-faint);
+                border: 1px solid var(--border-faint);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            .step {
+                background: var(--bg-card);
+                padding: 32px 28px;
+                position: relative;
+                transition: background 0.2s;
+            }
+            .step:hover {
+                background: var(--bg-card-hover);
+            }
+            .step-num {
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--accent);
+                margin-bottom: 18px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .step-num::after {
+                content: "";
+                flex: 1;
+                height: 1px;
+                background: var(--border-faint);
+            }
+            .step-icon {
+                font-size: 30px;
+                margin-bottom: 16px;
+                display: block;
+            }
+            .step-title {
+                font-size: 15px;
+                font-weight: 700;
+                color: var(--text-bright);
+                margin-bottom: 10px;
+            }
+            .step-desc {
+                font-size: 13px;
+                color: var(--text-muted);
+                line-height: 1.7;
+            }
 
-    /* ── Arrow connector between steps (decorative) ── */
-    .pipeline-wrap { position: relative; }
+            /* ── Arrow connector between steps (decorative) ── */
+            .pipeline-wrap {
+                position: relative;
+            }
 
-    /* ── Output cards ── */
-    .output-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-      gap: 10px;
-    }
-    .output-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-faint);
-      border-radius: 6px;
-      padding: 20px 18px;
-      transition: border-color 0.2s, background 0.2s, transform 0.2s;
-    }
-    .output-card:hover {
-      border-color: var(--accent-dim);
-      background: var(--bg-card-hover);
-      transform: translateY(-2px);
-    }
-    .output-icon { font-size: 24px; margin-bottom: 12px; display: block; }
-    .output-label { font-size: 14px; font-weight: 700; color: var(--text-bright); margin-bottom: 5px; }
-    .output-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+            /* ── Output cards ── */
+            .output-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+                gap: 10px;
+            }
+            .output-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border-faint);
+                border-radius: 6px;
+                padding: 20px 18px;
+                transition:
+                    border-color 0.2s,
+                    background 0.2s,
+                    transform 0.2s;
+            }
+            .output-card:hover {
+                border-color: var(--accent-dim);
+                background: var(--bg-card-hover);
+                transform: translateY(-2px);
+            }
+            .output-icon {
+                font-size: 24px;
+                margin-bottom: 12px;
+                display: block;
+            }
+            .output-label {
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--text-bright);
+                margin-bottom: 5px;
+            }
+            .output-desc {
+                font-size: 12px;
+                color: var(--text-muted);
+                line-height: 1.6;
+            }
 
-    /* ── Team ── */
-    .team-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 14px;
-    }
-    .member-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-faint);
-      border-radius: 6px;
-      overflow: hidden;
-      transition: border-color 0.2s, transform 0.25s;
-    }
-    .member-card:hover { border-color: var(--accent-dim); transform: translateY(-4px); }
-    .member-img { aspect-ratio: 1 / 1; background: var(--surface); overflow: hidden; }
-    .member-img img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
-      filter: grayscale(25%) brightness(0.9);
-      transition: filter 0.3s, transform 0.4s;
-    }
-    .member-card:hover .member-img img { filter: grayscale(0%) brightness(1); transform: scale(1.04); }
-    .member-body { padding: 18px 16px; }
-    .member-name { font-weight: 800; color: var(--text-bright); font-size: 15px; margin-bottom: 5px; }
-    .member-role { font-size: 13px; color: var(--accent); }
+            /* ── Team ── */
+            .team-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 14px;
+            }
+            .member-card {
+                background: var(--bg-card);
+                border: 1px solid var(--border-faint);
+                border-radius: 6px;
+                overflow: hidden;
+                transition:
+                    border-color 0.2s,
+                    transform 0.25s;
+            }
+            .member-card:hover {
+                border-color: var(--accent-dim);
+                transform: translateY(-4px);
+            }
+            .member-img {
+                aspect-ratio: 1 / 1;
+                background: var(--surface);
+                overflow: hidden;
+            }
+            .member-img img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                display: block;
+                filter: grayscale(25%) brightness(0.9);
+                transition:
+                    filter 0.3s,
+                    transform 0.4s;
+            }
+            .member-card:hover .member-img img {
+                filter: grayscale(0%) brightness(1);
+                transform: scale(1.04);
+            }
+            .member-body {
+                padding: 18px 16px;
+            }
+            .member-name {
+                font-weight: 800;
+                color: var(--text-bright);
+                font-size: 15px;
+                margin-bottom: 5px;
+            }
+            .member-role {
+                font-size: 13px;
+                color: var(--accent);
+            }
 
-    /* ── Divider with label ── */
-    .divider-label {
-      display: flex; align-items: center; gap: 14px; margin-bottom: 36px;
-    }
-    .divider-label h2 { margin: 0; }
-    .divider-label::after {
-      content: ''; flex: 1; height: 1px; background: var(--border-faint);
-    }
+            /* ── Divider with label ── */
+            .divider-label {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                margin-bottom: 36px;
+            }
+            .divider-label h2 {
+                margin: 0;
+            }
+            .divider-label::after {
+                content: "";
+                flex: 1;
+                height: 1px;
+                background: var(--border-faint);
+            }
 
-    /* ── PDF section ── */
-    .pdf-header {
-      display: flex; align-items: baseline; justify-content: space-between;
-      gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
-    }
-    .pdf-link {
-      color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600;
-      transition: color 0.15s;
-    }
-    .pdf-link:hover { color: var(--text-bright); }
-    .pdfbox {
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-      height: min(75vh, 820px);
-      background: var(--bg-alt);
-    }
-    iframe { width: 100%; height: 100%; border: 0; }
-    .note { color: var(--text-muted); margin: 12px 0 0; font-size: 13px; }
+            /* ── PDF section ── */
+            .doc-tabs {
+                display: flex;
+                gap: 4px;
+                margin-bottom: 20px;
+                border-bottom: 2px solid var(--border-faint);
+                padding-bottom: 0;
+            }
+            .doc-tab {
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--text-muted);
+                background: transparent;
+                border: 1px solid transparent;
+                border-bottom: none;
+                border-radius: 6px 6px 0 0;
+                cursor: pointer;
+                transition:
+                    color 0.15s,
+                    background 0.15s,
+                    border-color 0.15s;
+                position: relative;
+                bottom: -2px;
+                font-family: inherit;
+            }
+            .doc-tab:hover {
+                color: var(--text);
+                background: var(--bg-card);
+            }
+            .doc-tab.active {
+                color: var(--accent);
+                background: var(--bg-card);
+                border-color: var(--border);
+                border-bottom: 2px solid var(--bg-card);
+            }
+            .doc-panel {
+                display: none;
+            }
+            .doc-panel.active {
+                display: block;
+            }
 
-    /* ── Footer ── */
-    footer {
-      background: var(--bg-alt);
-      border-top: 1px solid var(--border-faint);
-      padding: 24px 0;
-    }
-    .footer-inner {
-      display: flex; justify-content: space-between; align-items: center;
-      gap: 12px; flex-wrap: wrap;
-    }
-    .footer-copy { font-size: 13px; color: var(--text-muted); }
-    .footer-note { font-size: 12px; color: var(--text-muted); opacity: 0.5; }
+            .pdf-header {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-bottom: 16px;
+            }
+            .pdf-link {
+                color: var(--accent);
+                text-decoration: none;
+                font-size: 14px;
+                font-weight: 600;
+                transition: color 0.15s;
+            }
+            .pdf-link:hover {
+                color: var(--text-bright);
+            }
+            .pdfbox {
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                overflow: hidden;
+                height: min(75vh, 820px);
+                background: var(--bg-alt);
+            }
+            iframe {
+                width: 100%;
+                height: 100%;
+                border: 0;
+            }
+            .note {
+                color: var(--text-muted);
+                margin: 12px 0 0;
+                font-size: 13px;
+            }
 
-    /* ── Chat demo window ── */
-    .chat-window {
-      margin: 36px auto 0;
-      background: #0d1520;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      max-width: 792px;
-    }
-    .chat-header {
-      background: #0a1018;
-      border-bottom: 1px solid var(--border-faint);
-      padding: 13px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .chat-header-left { display: flex; align-items: center; gap: 10px; }
-    .chat-bot-name { font-size: 14px; font-weight: 700; color: var(--text-bright); }
-    .chat-online { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
-    .online-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: #5ba32b; box-shadow: 0 0 6px rgba(91,163,43,0.65);
-      display: inline-block;
-    }
-    .chat-messages { padding: 22px 18px; display: flex; flex-direction: column; gap: 20px; }
-    .chat-msg { display: flex; align-items: flex-end; gap: 10px; }
-    .chat-msg.user { flex-direction: row-reverse; }
-    .chat-av {
-      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 800; letter-spacing: 0.02em;
-    }
-    .chat-av.bot-av { background: rgba(26,159,255,0.15); border: 1px solid rgba(26,159,255,0.35); color: var(--accent); }
-    .chat-av.user-av { background: rgba(91,163,43,0.15); border: 1px solid rgba(91,163,43,0.35); color: #72b83f; }
-    .bubble {
-      max-width: 82%;
-      padding: 12px 16px;
-      font-size: 14px; line-height: 1.65;
-      border-radius: 18px;
-    }
-    .bubble.user-bubble {
-      background: #1a9fff;
-      color: #fff;
-      border-bottom-right-radius: 5px;
-      font-style: italic; font-weight: 500;
-    }
-    .bubble.bot-bubble {
-      background: #16202d;
-      border: 1px solid var(--border-faint);
-      color: var(--text);
-      border-bottom-left-radius: 5px;
-    }
-    .bot-intro { margin: 0 0 14px; color: var(--text); }
-    .game-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
-    .game-chip {
-      display: flex; flex-direction: column;
-      background: #0d1520;
-      border: 1px solid rgba(26,159,255,0.25);
-      border-radius: 8px;
-      overflow: hidden;
-      width: 165px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .game-chip:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .chip-art { width: 100%; aspect-ratio: 460 / 215; object-fit: cover; display: block; }
-    .chip-name { padding: 8px 10px; font-size: 12px; font-weight: 700; color: var(--accent); }
-    .bot-note { margin: 0; font-size: 12px; color: var(--text-muted); }
-    .chat-footer {
-      background: #0a1018;
-      border-top: 1px solid var(--border-faint);
-      padding: 12px 14px;
-      display: flex; gap: 10px; align-items: center;
-    }
-    .chat-input {
-      flex: 1;
-      background: #16202d;
-      border: 1px solid var(--border-faint);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 14px;
-      color: var(--text-muted);
-      outline: none;
-      cursor: default;
-      font-family: inherit;
-    }
-    .chat-input::placeholder { color: var(--text-muted); opacity: 0.5; }
-    .chat-send {
-      width: 36px; height: 36px; flex-shrink: 0;
-      border-radius: 8px;
-      background: var(--accent-bright);
-      border: none; color: #fff; font-size: 16px;
-      cursor: default; opacity: 0.4;
-      display: flex; align-items: center; justify-content: center;
-    }
+            /* ── Footer ── */
+            footer {
+                background: var(--bg-alt);
+                border-top: 1px solid var(--border-faint);
+                padding: 24px 0;
+            }
+            .footer-inner {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+            .footer-copy {
+                font-size: 13px;
+                color: var(--text-muted);
+            }
+            .footer-note {
+                font-size: 12px;
+                color: var(--text-muted);
+                opacity: 0.5;
+            }
 
-    @media (max-width: 600px) {
-      .nav-links { display: none; }
-      h1 { font-size: 34px; }
-      .bubble { max-width: 90%; }
-    }
-  </style>
-</head>
+            /* ── Chat demo window ── */
+            .chat-window {
+                margin: 36px auto 0;
+                background: #0d1520;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                overflow: hidden;
+                max-width: 792px;
+            }
+            .chat-header {
+                background: #0a1018;
+                border-bottom: 1px solid var(--border-faint);
+                padding: 13px 18px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .chat-header-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .chat-bot-name {
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--text-bright);
+            }
+            .chat-online {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+            .online-dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: #5ba32b;
+                box-shadow: 0 0 6px rgba(91, 163, 43, 0.65);
+                display: inline-block;
+            }
+            .chat-messages {
+                padding: 22px 18px;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+            .chat-msg {
+                display: flex;
+                align-items: flex-end;
+                gap: 10px;
+            }
+            .chat-msg.user {
+                flex-direction: row-reverse;
+            }
+            .chat-av {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.02em;
+            }
+            .chat-av.bot-av {
+                background: rgba(26, 159, 255, 0.15);
+                border: 1px solid rgba(26, 159, 255, 0.35);
+                color: var(--accent);
+            }
+            .chat-av.user-av {
+                background: rgba(91, 163, 43, 0.15);
+                border: 1px solid rgba(91, 163, 43, 0.35);
+                color: #72b83f;
+            }
+            .bubble {
+                max-width: 82%;
+                padding: 12px 16px;
+                font-size: 14px;
+                line-height: 1.65;
+                border-radius: 18px;
+            }
+            .bubble.user-bubble {
+                background: #1a9fff;
+                color: #fff;
+                border-bottom-right-radius: 5px;
+                font-style: italic;
+                font-weight: 500;
+            }
+            .bubble.bot-bubble {
+                background: #16202d;
+                border: 1px solid var(--border-faint);
+                color: var(--text);
+                border-bottom-left-radius: 5px;
+            }
+            .bot-intro {
+                margin: 0 0 14px;
+                color: var(--text);
+            }
+            .game-chips {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 14px;
+            }
+            .game-chip {
+                display: flex;
+                flex-direction: column;
+                background: #0d1520;
+                border: 1px solid rgba(26, 159, 255, 0.25);
+                border-radius: 8px;
+                overflow: hidden;
+                width: 165px;
+                transition:
+                    border-color 0.2s,
+                    transform 0.2s;
+            }
+            .game-chip:hover {
+                border-color: var(--accent);
+                transform: translateY(-2px);
+            }
+            .chip-art {
+                width: 100%;
+                aspect-ratio: 460 / 215;
+                object-fit: cover;
+                display: block;
+            }
+            .chip-name {
+                padding: 8px 10px;
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--accent);
+            }
+            .bot-note {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+            .chat-footer {
+                background: #0a1018;
+                border-top: 1px solid var(--border-faint);
+                padding: 12px 14px;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+            }
+            .chat-input {
+                flex: 1;
+                background: #16202d;
+                border: 1px solid var(--border-faint);
+                border-radius: 8px;
+                padding: 10px 14px;
+                font-size: 14px;
+                color: var(--text-muted);
+                outline: none;
+                cursor: default;
+                font-family: inherit;
+            }
+            .chat-input::placeholder {
+                color: var(--text-muted);
+                opacity: 0.5;
+            }
+            .chat-send {
+                width: 36px;
+                height: 36px;
+                flex-shrink: 0;
+                border-radius: 8px;
+                background: var(--accent-bright);
+                border: none;
+                color: #fff;
+                font-size: 16px;
+                cursor: default;
+                opacity: 0.4;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-<body>
+            @media (max-width: 600px) {
+                .nav-links {
+                    display: none;
+                }
+                h1 {
+                    font-size: 34px;
+                }
+                .bubble {
+                    max-width: 90%;
+                }
+            }
+        </style>
+    </head>
 
-  <!-- Sticky nav -->
-  <div class="topbar">
-    <div class="container topbar-inner">
-      <a class="logo" href="#">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="14" cy="14" r="13" stroke="#1a9fff" stroke-width="1.5" fill="rgba(26,159,255,0.12)"/>
-          <circle cx="14" cy="14" r="6" fill="rgba(26,159,255,0.3)"/>
-          <circle cx="14" cy="14" r="2.5" fill="#66c0f4"/>
-        </svg>
-        <span class="logo-text">Steam<span>Rec</span></span>
-      </a>
-      <nav class="nav-links">
-        <a href="#how-it-works">How It Works</a>
-        <a href="#outputs">Output</a>
-        <a href="#team">Team</a>
-        <a href="#report">Report</a>
-      </nav>
-    </div>
-  </div>
-
-  <!-- Hero -->
-  <header>
-    <div class="container">
-      <div class="hero-eyebrow">Graduate DBMS Project</div>
-      <h1>Find Your Next Game<br />with <em>Natural Language</em></h1>
-      <p class="hero-sub">
-        Describe what you feel like playing — <em>"a two-player action adventure with a good story"</em> — and our system searches a curated Steam database, consults an LLM, and returns handpicked recommendations with full store details.
-      </p>
-      <div class="hero-actions">
-        <a class="btn-green" href="assets/RecommendingGamesBasedonPreference_TEST.pdf" download>
-          ↓ &nbsp;Download Report
-        </a>
-        <a class="btn-ghost" href="#how-it-works">
-          See How It Works →
-        </a>
-      </div>
-    </div>
-  </header>
-
-  <main>
-
-    <!-- ── How It Works ── -->
-    <section id="how-it-works">
-      <div class="container">
-        <div class="section-label">Pipeline</div>
-        <h2>How It Works</h2>
-        <p class="section-desc">Four steps from a plain-English prompt to your next favorite game.</p>
-
-        <div class="pipeline">
-          <div class="step">
-            <div class="step-num">01</div>
-            <span class="step-icon">🎮</span>
-            <div class="step-title">Steam API Ingestion</div>
-            <div class="step-desc">
-              Game metadata — descriptions, tags, prices, review scores, and related titles — is pulled directly from the Steam Store API and persisted in a structured relational database.
+    <body>
+        <!-- Sticky nav -->
+        <div class="topbar">
+            <div class="container topbar-inner">
+                <a class="logo" href="#">
+                    <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 28 28"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <circle
+                            cx="14"
+                            cy="14"
+                            r="13"
+                            stroke="#1a9fff"
+                            stroke-width="1.5"
+                            fill="rgba(26,159,255,0.12)"
+                        />
+                        <circle
+                            cx="14"
+                            cy="14"
+                            r="6"
+                            fill="rgba(26,159,255,0.3)"
+                        />
+                        <circle cx="14" cy="14" r="2.5" fill="#66c0f4" />
+                    </svg>
+                    <span class="logo-text">Steam<span>Rec</span></span>
+                </a>
+                <nav class="nav-links">
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#outputs">Output</a>
+                    <a href="#team">Team</a>
+                    <a href="#report">Report</a>
+                </nav>
             </div>
-          </div>
-
-          <div class="step">
-            <div class="step-num">02</div>
-            <span class="step-icon">🗄️</span>
-            <div class="step-title">Structured Database</div>
-            <div class="step-desc">
-              Data is organized in a normalized schema, enabling fast lookups, tag-based filtering, and efficient joins across tens of thousands of game entries at query time.
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-num">03</div>
-            <span class="step-icon">🤖</span>
-            <div class="step-title">LLM Recommendation</div>
-            <div class="step-desc">
-              Your natural language query is paired with structured game descriptions and sent to an LLM, which reasons over the content and returns a ranked list of matching titles.
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-num">04</div>
-            <span class="step-icon">📋</span>
-            <div class="step-title">Enriched Results</div>
-            <div class="step-desc">
-              Recommendations are resolved against the database and returned with complete details: name, rating, price, tags, related games, and a direct link to the Steam Store page.
-            </div>
-          </div>
         </div>
 
-        <!-- Chat demo -->
-        <div class="chat-window">
-
-          <!-- Header bar -->
-          <div class="chat-header">
-            <div class="chat-header-left">
-              <svg width="22" height="22" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="14" cy="14" r="13" stroke="#1a9fff" stroke-width="1.5" fill="rgba(26,159,255,0.12)"/>
-                <circle cx="14" cy="14" r="6" fill="rgba(26,159,255,0.3)"/>
-                <circle cx="14" cy="14" r="2.5" fill="#66c0f4"/>
-              </svg>
-              <span class="chat-bot-name">SteamRec</span>
-            </div>
-            <span class="chat-online"><span class="online-dot"></span> Online</span>
-          </div>
-
-          <!-- Messages -->
-          <div class="chat-messages">
-
-            <!-- User message -->
-            <div class="chat-msg user">
-              <div class="chat-av user-av">You</div>
-              <div class="bubble user-bubble">
-                "a two-player action adventure with a good story"
-              </div>
-            </div>
-
-            <!-- Bot response -->
-            <div class="chat-msg bot">
-              <div class="chat-av bot-av">SR</div>
-              <div class="bubble bot-bubble">
-                <p class="bot-intro">Here are my top picks based on your request:</p>
-                <div class="game-chips">
-                  <div class="game-chip">
-                    <img class="chip-art" src="https://cdn.akamai.steamstatic.com/steam/apps/620/header.jpg" alt="Portal 2" loading="lazy" />
-                    <span class="chip-name">Portal 2</span>
-                  </div>
-                  <div class="game-chip">
-                    <img class="chip-art" src="https://cdn.akamai.steamstatic.com/steam/apps/1426210/header.jpg" alt="It Takes Two" loading="lazy" />
-                    <span class="chip-name">It Takes Two</span>
-                  </div>
-                  <div class="game-chip">
-                    <img class="chip-art" src="https://cdn.akamai.steamstatic.com/steam/apps/1222700/header.jpg" alt="A Way Out" loading="lazy" />
-                    <span class="chip-name">A Way Out</span>
-                  </div>
+        <!-- Hero -->
+        <header>
+            <div class="container">
+                <div class="hero-eyebrow">Graduate DBMS Project</div>
+                <h1>Find Your Next Game<br />with <em>Natural Language</em></h1>
+                <p class="hero-sub">
+                    Describe what you feel like playing —
+                    <em>"a two-player action adventure with a good story"</em> —
+                    and our system searches a curated Steam database, consults
+                    an LLM, and returns handpicked recommendations with full
+                    store details.
+                </p>
+                <div class="hero-actions">
+                    <a
+                        class="btn-green"
+                        href="assets/RecommendingGamesBasedonPreference_1.pdf"
+                        download
+                    >
+                        ↓ &nbsp;Download Proposal
+                    </a>
+                    <a
+                        class="btn-green"
+                        href="assets/SteamRec_Checkpoint1.pdf"
+                        download
+                    >
+                        ↓ &nbsp;Download Checkpoint 1
+                    </a>
+                    <a class="btn-ghost" href="#how-it-works">
+                        See How It Works →
+                    </a>
                 </div>
-                <p class="bot-note">Each result includes rating, price, tags, related games, and a direct Steam store link.</p>
-              </div>
             </div>
+        </header>
 
-          </div>
+        <main>
+            <!-- ── How It Works ── -->
+            <section id="how-it-works">
+                <div class="container">
+                    <div class="section-label">Pipeline</div>
+                    <h2>How It Works</h2>
+                    <p class="section-desc">
+                        Four steps from a plain-English prompt to your next
+                        favorite game.
+                    </p>
 
-          <!-- Decorative input bar -->
-          <div class="chat-footer">
-            <input class="chat-input" type="text" placeholder="Describe a game you'd like to play…" disabled />
-            <button class="chat-send" disabled>↑</button>
-          </div>
+                    <div class="pipeline">
+                        <div class="step">
+                            <div class="step-num">01</div>
+                            <span class="step-icon">🎮</span>
+                            <div class="step-title">Steam API Ingestion</div>
+                            <div class="step-desc">
+                                Game metadata — descriptions, tags, prices,
+                                review scores, and related titles — is pulled
+                                directly from the Steam Store API and persisted
+                                in a structured relational database.
+                            </div>
+                        </div>
 
-        </div>
-      </div>
-    </section>
+                        <div class="step">
+                            <div class="step-num">02</div>
+                            <span class="step-icon">🗄️</span>
+                            <div class="step-title">Structured Database</div>
+                            <div class="step-desc">
+                                Data is organized in a normalized schema,
+                                enabling fast lookups, tag-based filtering, and
+                                efficient joins across tens of thousands of game
+                                entries at query time.
+                            </div>
+                        </div>
 
-    <!-- ── What You Get Back ── -->
-    <section id="outputs">
-      <div class="container">
-        <div class="section-label">Output</div>
-        <h2>What You Get Back</h2>
-        <p class="section-desc">Every recommendation is enriched with live Steam Store metadata so you can make an informed choice.</p>
+                        <div class="step">
+                            <div class="step-num">03</div>
+                            <span class="step-icon">🤖</span>
+                            <div class="step-title">LLM Recommendation</div>
+                            <div class="step-desc">
+                                Your natural language query is paired with
+                                structured game descriptions and sent to an LLM,
+                                which reasons over the content and returns a
+                                ranked list of matching titles.
+                            </div>
+                        </div>
 
-        <div class="output-grid">
-          <div class="output-card">
-            <span class="output-icon">🏷️</span>
-            <div class="output-label">Game Name</div>
-            <div class="output-desc">Official title as listed on the Steam Store.</div>
-          </div>
-          <div class="output-card">
-            <span class="output-icon">⭐</span>
-            <div class="output-label">Rating</div>
-            <div class="output-desc">Steam review score and total review count.</div>
-          </div>
-          <div class="output-card">
-            <span class="output-icon">💰</span>
-            <div class="output-label">Price</div>
-            <div class="output-desc">Current store price, including free-to-play status.</div>
-          </div>
-          <div class="output-card">
-            <span class="output-icon">🔖</span>
-            <div class="output-label">Tags</div>
-            <div class="output-desc">Community-applied genre and feature tags.</div>
-          </div>
-          <div class="output-card">
-            <span class="output-icon">🎲</span>
-            <div class="output-label">Related Games</div>
-            <div class="output-desc">Similar titles surfaced from the database graph.</div>
-          </div>
-          <div class="output-card">
-            <span class="output-icon">🛒</span>
-            <div class="output-label">Steam Link</div>
-            <div class="output-desc">Direct link to the game's Steam Store page.</div>
-          </div>
-        </div>
-      </div>
-    </section>
+                        <div class="step">
+                            <div class="step-num">04</div>
+                            <span class="step-icon">📋</span>
+                            <div class="step-title">Enriched Results</div>
+                            <div class="step-desc">
+                                Recommendations are resolved against the
+                                database and returned with complete details:
+                                name, rating, price, tags, related games, and a
+                                direct link to the Steam Store page.
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- ── Team ── -->
-    <section id="team">
-      <div class="container">
-        <div class="section-label">The Team</div>
-        <h2>Meet the team</h2>
-        <p class="section-desc">Built for a graduate Database Management Systems course.</p>
+                    <!-- Chat demo -->
+                    <div class="chat-window">
+                        <!-- Header bar -->
+                        <div class="chat-header">
+                            <div class="chat-header-left">
+                                <svg
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 28 28"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <circle
+                                        cx="14"
+                                        cy="14"
+                                        r="13"
+                                        stroke="#1a9fff"
+                                        stroke-width="1.5"
+                                        fill="rgba(26,159,255,0.12)"
+                                    />
+                                    <circle
+                                        cx="14"
+                                        cy="14"
+                                        r="6"
+                                        fill="rgba(26,159,255,0.3)"
+                                    />
+                                    <circle
+                                        cx="14"
+                                        cy="14"
+                                        r="2.5"
+                                        fill="#66c0f4"
+                                    />
+                                </svg>
+                                <span class="chat-bot-name">SteamRec</span>
+                            </div>
+                            <span class="chat-online"
+                                ><span class="online-dot"></span> Online</span
+                            >
+                        </div>
 
-        <div class="team-grid">
-          <div class="member-card">
-            <div class="member-img">
-              <img src="assets/team/chris.png" alt="Christopher Williams" loading="lazy" />
+                        <!-- Messages -->
+                        <div class="chat-messages">
+                            <!-- User message -->
+                            <div class="chat-msg user">
+                                <div class="chat-av user-av">You</div>
+                                <div class="bubble user-bubble">
+                                    "a two-player action adventure with a good
+                                    story"
+                                </div>
+                            </div>
+
+                            <!-- Bot response -->
+                            <div class="chat-msg bot">
+                                <div class="chat-av bot-av">SR</div>
+                                <div class="bubble bot-bubble">
+                                    <p class="bot-intro">
+                                        Here are my top picks based on your
+                                        request:
+                                    </p>
+                                    <div class="game-chips">
+                                        <div class="game-chip">
+                                            <img
+                                                class="chip-art"
+                                                src="https://cdn.akamai.steamstatic.com/steam/apps/620/header.jpg"
+                                                alt="Portal 2"
+                                                loading="lazy"
+                                            />
+                                            <span class="chip-name"
+                                                >Portal 2</span
+                                            >
+                                        </div>
+                                        <div class="game-chip">
+                                            <img
+                                                class="chip-art"
+                                                src="https://cdn.akamai.steamstatic.com/steam/apps/1426210/header.jpg"
+                                                alt="It Takes Two"
+                                                loading="lazy"
+                                            />
+                                            <span class="chip-name"
+                                                >It Takes Two</span
+                                            >
+                                        </div>
+                                        <div class="game-chip">
+                                            <img
+                                                class="chip-art"
+                                                src="https://cdn.akamai.steamstatic.com/steam/apps/1222700/header.jpg"
+                                                alt="A Way Out"
+                                                loading="lazy"
+                                            />
+                                            <span class="chip-name"
+                                                >A Way Out</span
+                                            >
+                                        </div>
+                                    </div>
+                                    <p class="bot-note">
+                                        Each result includes rating, price,
+                                        tags, related games, and a direct Steam
+                                        store link.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Decorative input bar -->
+                        <div class="chat-footer">
+                            <input
+                                class="chat-input"
+                                type="text"
+                                placeholder="Describe a game you'd like to play…"
+                                disabled
+                            />
+                            <button class="chat-send" disabled>↑</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── What You Get Back ── -->
+            <section id="outputs">
+                <div class="container">
+                    <div class="section-label">Output</div>
+                    <h2>What You Get Back</h2>
+                    <p class="section-desc">
+                        Every recommendation is enriched with live Steam Store
+                        metadata so you can make an informed choice.
+                    </p>
+
+                    <div class="output-grid">
+                        <div class="output-card">
+                            <span class="output-icon">🏷️</span>
+                            <div class="output-label">Game Name</div>
+                            <div class="output-desc">
+                                Official title as listed on the Steam Store.
+                            </div>
+                        </div>
+                        <div class="output-card">
+                            <span class="output-icon">⭐</span>
+                            <div class="output-label">Rating</div>
+                            <div class="output-desc">
+                                Steam review score and total review count.
+                            </div>
+                        </div>
+                        <div class="output-card">
+                            <span class="output-icon">💰</span>
+                            <div class="output-label">Price</div>
+                            <div class="output-desc">
+                                Current store price, including free-to-play
+                                status.
+                            </div>
+                        </div>
+                        <div class="output-card">
+                            <span class="output-icon">🔖</span>
+                            <div class="output-label">Tags</div>
+                            <div class="output-desc">
+                                Community-applied genre and feature tags.
+                            </div>
+                        </div>
+                        <div class="output-card">
+                            <span class="output-icon">🎲</span>
+                            <div class="output-label">Related Games</div>
+                            <div class="output-desc">
+                                Similar titles surfaced from the database graph.
+                            </div>
+                        </div>
+                        <div class="output-card">
+                            <span class="output-icon">🛒</span>
+                            <div class="output-label">Steam Link</div>
+                            <div class="output-desc">
+                                Direct link to the game's Steam Store page.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Team ── -->
+            <section id="team">
+                <div class="container">
+                    <div class="section-label">The Team</div>
+                    <h2>Meet the team</h2>
+                    <p class="section-desc">
+                        Built for a graduate Database Management Systems course.
+                    </p>
+
+                    <div class="team-grid">
+                        <div class="member-card">
+                            <div class="member-img">
+                                <img
+                                    src="assets/team/chris.png"
+                                    alt="Christopher Williams"
+                                    loading="lazy"
+                                />
+                            </div>
+                            <div class="member-body">
+                                <div class="member-name">Chris Williams</div>
+                                <div class="member-role">Frontend + LLM</div>
+                            </div>
+                        </div>
+
+                        <div class="member-card">
+                            <div class="member-img">
+                                <img
+                                    src="assets/team/steve.png"
+                                    alt="Steve Park"
+                                    loading="lazy"
+                                />
+                            </div>
+                            <div class="member-body">
+                                <div class="member-name">Steve Park</div>
+                                <div class="member-role">Backend + LLM</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── Project Report ── -->
+            <section id="report">
+                <div class="container">
+                    <div class="section-label">Documentation</div>
+
+                    <div class="doc-tabs">
+                        <button class="doc-tab active" data-tab="proposal">
+                            Project Proposal
+                        </button>
+                        <button class="doc-tab" data-tab="checkpoint1">
+                            Checkpoint 1
+                        </button>
+                    </div>
+
+                    <div class="doc-panel active" id="panel-proposal">
+                        <div class="pdf-header">
+                            <div><h2>Project Proposal</h2></div>
+                            <a
+                                class="pdf-link"
+                                href="assets/RecommendingGamesBasedonPreference_1.pdf"
+                                target="_blank"
+                                rel="noreferrer"
+                                >Open in new tab ↗</a
+                            >
+                        </div>
+                        <div class="pdfbox">
+                            <iframe
+                                src="assets/RecommendingGamesBasedonPreference_1.pdf"
+                                title="Project Proposal PDF"
+                            ></iframe>
+                        </div>
+                    </div>
+
+                    <div class="doc-panel" id="panel-checkpoint1">
+                        <div class="pdf-header">
+                            <div><h2>Checkpoint 1</h2></div>
+                            <a
+                                class="pdf-link"
+                                href="assets/SteamRec_Checkpoint1.pdf"
+                                target="_blank"
+                                rel="noreferrer"
+                                >Open in new tab ↗</a
+                            >
+                        </div>
+                        <div class="pdfbox">
+                            <iframe
+                                src="assets/SteamRec_Checkpoint1.pdf"
+                                title="Checkpoint 1 PDF"
+                            ></iframe>
+                        </div>
+                    </div>
+
+                    <p class="note">
+                        If the embedded preview doesn't load, use "Open in new
+                        tab" above.
+                    </p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container footer-inner">
+                <span class="footer-copy"
+                    >© <span id="y"></span> SteamRec &mdash; Graduate DBMS
+                    Project</span
+                >
+                <span class="footer-note"
+                    >Not affiliated with Valve Corporation or Steam.</span
+                >
             </div>
-            <div class="member-body">
-              <div class="member-name">Chris Williams</div>
-              <div class="member-role">Frontend + LLM</div>
-            </div>
-          </div>
+        </footer>
 
-          <div class="member-card">
-            <div class="member-img">
-              <img src="assets/team/steve.png" alt="Steve Park" loading="lazy" />
-            </div>
-            <div class="member-body">
-              <div class="member-name">Steve Park</div>
-              <div class="member-role">Backend + LLM</div>
-            </div>
-          </div>
+        <script>
+            document.getElementById("y").textContent = new Date().getFullYear();
 
-          <div class="member-card">
-            <div class="member-img">
-              <img src="assets/team/shiyi.jpg" alt="Shiyi Liu" loading="lazy" />
-            </div>
-            <div class="member-body">
-              <div class="member-name">Shiyi Liu</div>
-              <div class="member-role">Backend + LLM</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+            // Documentation tab switching
+            document.querySelectorAll(".doc-tab").forEach((tab) => {
+                tab.addEventListener("click", () => {
+                    document
+                        .querySelectorAll(".doc-tab")
+                        .forEach((t) => t.classList.remove("active"));
+                    document
+                        .querySelectorAll(".doc-panel")
+                        .forEach((p) => p.classList.remove("active"));
+                    tab.classList.add("active");
+                    document
+                        .getElementById("panel-" + tab.dataset.tab)
+                        .classList.add("active");
+                });
+            });
 
-    <!-- ── Project Report ── -->
-    <section id="report">
-      <div class="container">
-        <div class="section-label">Documentation</div>
-        <div class="pdf-header">
-          <div>
-            <h2>Project Proposal</h2>
-          </div>
-          <a class="pdf-link" href="assets/RecommendingGamesBasedonPreference_1.pdf" target="_blank" rel="noreferrer">Open in new tab ↗</a>
-        </div>
-
-        <div class="pdfbox">
-          <iframe src="assets/RecommendingGamesBasedonPreference_1.pdf" title="Project Report PDF"></iframe>
-        </div>
-
-        <p class="note">
-          If the embedded preview doesn't load, use "Open in new tab" above or the "Download Report" button at the top of the page.
-        </p>
-      </div>
-    </section>
-
-  </main>
-
-  <footer>
-    <div class="container footer-inner">
-      <span class="footer-copy">© <span id="y"></span> SteamRec &mdash; Graduate DBMS Project</span>
-      <span class="footer-note">Not affiliated with Valve Corporation or Steam.</span>
-    </div>
-  </footer>
-
-  <script>
-    document.getElementById("y").textContent = new Date().getFullYear();
-
-    // Smooth scroll for nav links
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        const target = document.querySelector(a.getAttribute('href'));
-        if (target) {
-          e.preventDefault();
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-    });
-  </script>
-</body>
+            // Smooth scroll for nav links
+            document.querySelectorAll('a[href^="#"]').forEach((a) => {
+                a.addEventListener("click", (e) => {
+                    const target = document.querySelector(
+                        a.getAttribute("href"),
+                    );
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                    }
+                });
+            });
+        </script>
+    </body>
 </html>
