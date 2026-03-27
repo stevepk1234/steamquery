@@ -15,19 +15,15 @@ const DEAD_SPACE_REPLY = {
     {
       appId: 2101960,
       name: "Cronos: The New Dawn",
-      blurb: "A whole new breed of survival horror emerges with Cronos: The New Dawn. Survive the brutal wastelands of the future, fight nightmarish merging creatures and jump back in time to harvest souls as you seek to uncover the origins of the apocalypse that wiped out humanity.",
+      blurb:
+        "A whole new breed of survival horror emerges with Cronos: The New Dawn. Survive the brutal wastelands of the future, fight nightmarish merging creatures and jump back in time to harvest souls as you seek to uncover the origins of the apocalypse that wiped out humanity.",
     },
   ],
   note: "Each result includes rating, price, tags, related games, and a direct Steam store link.",
 };
 
 function App() {
-  const [messages, setMessages] = useState([
-    {
-      role: "bot",
-      text: "Hey! Describe a game you're in the mood for and I'll find some recommendations.",
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
   function handleSend() {
@@ -63,49 +59,61 @@ function App() {
       </div>
 
       <div className="chat-area">
-        <div className="chat-column">
-          {messages.map((msg, i) => (
-            <div key={i} className={`message ${msg.role}`}>
-              <div
-                className={`avatar ${msg.role === "bot" ? "bot-avatar" : "user-avatar"}`}
-              >
-                {msg.role === "bot" ? "SR" : "You"}
+        {messages.length === 0 ? (
+          <div className="hero">
+            <h1 className="hero-title">
+              What kind of game are you looking for today?
+            </h1>
+            <p className="hero-subtitle">
+              Describe a vibe, a genre, or a game you loved — I'll find
+              something for you.
+            </p>
+          </div>
+        ) : (
+          <div className="chat-column">
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.role}`}>
+                <div
+                  className={`avatar ${msg.role === "bot" ? "bot-avatar" : "user-avatar"}`}
+                >
+                  {msg.role === "bot" ? "SR" : "You"}
+                </div>
+                <div
+                  className={`bubble ${msg.role === "bot" ? "bot-bubble" : "user-bubble"}`}
+                >
+                  {msg.type === "recommendation" ? (
+                    <>
+                      <p className="rec-intro">{msg.intro}</p>
+                      <div className="game-chips">
+                        {msg.games.map((g) => (
+                          <a
+                            key={g.appId}
+                            className="game-chip"
+                            href={`https://store.steampowered.com/app/${g.appId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <img
+                              className="chip-art"
+                              src={`https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg`}
+                              alt={g.name}
+                              loading="lazy"
+                            />
+                            <span className="chip-name">{g.name}</span>
+                            <span className="chip-blurb">{g.blurb}</span>
+                          </a>
+                        ))}
+                      </div>
+                      <p className="rec-note">{msg.note}</p>
+                    </>
+                  ) : (
+                    msg.text
+                  )}
+                </div>
               </div>
-              <div
-                className={`bubble ${msg.role === "bot" ? "bot-bubble" : "user-bubble"}`}
-              >
-                {msg.type === "recommendation" ? (
-                  <>
-                    <p className="rec-intro">{msg.intro}</p>
-                    <div className="game-chips">
-                      {msg.games.map((g) => (
-                        <a
-                          key={g.appId}
-                          className="game-chip"
-                          href={`https://store.steampowered.com/app/${g.appId}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <img
-                            className="chip-art"
-                            src={`https://cdn.akamai.steamstatic.com/steam/apps/${g.appId}/header.jpg`}
-                            alt={g.name}
-                            loading="lazy"
-                          />
-                          <span className="chip-name">{g.name}</span>
-                          <span className="chip-blurb">{g.blurb}</span>
-                        </a>
-                      ))}
-                    </div>
-                    <p className="rec-note">{msg.note}</p>
-                  </>
-                ) : (
-                  msg.text
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="input-bar">
