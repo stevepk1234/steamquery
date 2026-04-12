@@ -1,4 +1,5 @@
 import { useState } from "react";
+import GameBackground from "./GameBackground";
 import "./App.css";
 
 const DEAD_SPACE_REPLY = {
@@ -40,6 +41,7 @@ function App() {
 
   return (
     <>
+      <GameBackground visible={messages.length === 0} />
       <div className="topbar">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
           <circle
@@ -65,9 +67,27 @@ function App() {
               What kind of game are you looking for today?
             </h1>
             <p className="hero-subtitle">
-              Describe a vibe, a genre, or a game you loved — I'll find
-              something for you.
+              Describe a vibe, genre, or game you loved and we'll find the
+              perfect fit for you.
             </p>
+            <div className="input-bar hero-input">
+              <div className="input-inner">
+                <input
+                  type="text"
+                  placeholder="Describe a game you'd like to play..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                <button
+                  className="send-button"
+                  onClick={handleSend}
+                  disabled={!input.trim()}
+                >
+                  ↑
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="chat-column">
@@ -116,24 +136,26 @@ function App() {
         )}
       </div>
 
-      <div className="input-bar">
-        <div className="input-inner">
-          <input
-            type="text"
-            placeholder="Describe a game you'd like to play..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button
-            className="send-button"
-            onClick={handleSend}
-            disabled={!input.trim()}
-          >
-            ↑
-          </button>
+      {messages.length > 0 && (
+        <div className="input-bar">
+          <div className="input-inner">
+            <input
+              type="text"
+              placeholder="Describe a game you'd like to play..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <button
+              className="send-button"
+              onClick={handleSend}
+              disabled={!input.trim()}
+            >
+              ↑
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
