@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import GameBackground from "./GameBackground";
 import "./App.css";
 
@@ -27,21 +27,48 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
+  const [loading, setLoading] = useState(false);
+
   function handleSend() {
     const text = input.trim();
-    if (!text) return;
+    if (!text || loading) return;
 
-    setMessages((prev) => [...prev, { role: "user", text }, DEAD_SPACE_REPLY]);
+    setMessages((prev) => [...prev, { role: "user", text }]);
     setInput("");
+    setLoading(true);
+
+    setTimeout(() => {
+      setMessages((prev) => [...prev, DEAD_SPACE_REPLY]);
+      setLoading(false);
+    }, 1200);
+  }
+
+  const textareaRef = useRef(null);
+
+  const autoResize = useCallback((el) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+
+  function handleInput(e) {
+    setInput(e.target.value);
+    autoResize(e.target);
   }
 
   function handleKeyDown(e) {
-    if (e.key === "Enter") handleSend();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+    }
   }
 
   return (
     <>
-      <GameBackground visible={messages.length === 0} />
+      <GameBackground visible={messages.length === 0} slow={input.length > 0} />
       <div className="topbar">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
           <circle
@@ -72,20 +99,14 @@ function App() {
             </p>
             <div className="input-bar hero-input">
               <div className="input-inner">
-                <input
-                  type="text"
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
                   placeholder="Describe a game you'd like to play..."
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={handleInput}
                   onKeyDown={handleKeyDown}
                 />
-                <button
-                  className="send-button"
-                  onClick={handleSend}
-                  disabled={!input.trim()}
-                >
-                  ↑
-                </button>
               </div>
             </div>
           </div>
@@ -132,6 +153,18 @@ function App() {
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="message bot">
+                <div className="avatar bot-avatar">SR</div>
+                <div className="bubble bot-bubble">
+                  <div className="typing-indicator">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -139,20 +172,14 @@ function App() {
       {messages.length > 0 && (
         <div className="input-bar">
           <div className="input-inner">
-            <input
-              type="text"
+            <textarea
+              ref={textareaRef}
+              rows={1}
               placeholder="Describe a game you'd like to play..."
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInput}
               onKeyDown={handleKeyDown}
             />
-            <button
-              className="send-button"
-              onClick={handleSend}
-              disabled={!input.trim()}
-            >
-              ↑
-            </button>
           </div>
         </div>
       )}
