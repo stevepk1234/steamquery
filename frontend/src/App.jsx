@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import GameBackground from "./GameBackground";
 import "./App.css";
 
@@ -28,6 +28,14 @@ function App() {
   const [input, setInput] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/health")
+      .then((res) => res.json())
+      .then((data) => setBackendStatus(data.message))
+      .catch(() => setBackendStatus("Failed to connect to backend."));
+  }, []);
 
   function handleSend() {
     const text = input.trim();
@@ -85,6 +93,9 @@ function App() {
         <span className="logo-text">
           Steam<span>Rec</span>
         </span>
+        {backendStatus && (
+          <span className="backend-status">{backendStatus}</span>
+        )}
       </div>
 
       <div className="chat-area">

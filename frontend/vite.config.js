@@ -6,6 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      "/api/health": {
+        target: "http://localhost:8000",
+        rewrite: (path) => "/",
+      },
       "/api": "http://localhost:8000",
     },
   },
