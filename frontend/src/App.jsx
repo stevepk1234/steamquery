@@ -2,27 +2,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import GameBackground from "./GameBackground";
 import "./App.css";
 
-const DEAD_SPACE_REPLY = {
-  role: "bot",
-  type: "recommendation",
-  intro: "Here are my top picks based on your request:",
-  games: [
-    {
-      appId: 1693980,
-      name: "Dead Space",
-      blurb:
-        "A survival horror classic. You're engineer Isaac Clarke, stranded on a mining ship overrun by grotesque necromorphs. Strategic dismemberment, zero-gravity combat, and relentless atmosphere make this a must-play.",
-    },
-    {
-      appId: 2101960,
-      name: "Cronos: The New Dawn",
-      blurb:
-        "A whole new breed of survival horror emerges with Cronos: The New Dawn. Survive the brutal wastelands of the future, fight nightmarish merging creatures and jump back in time to harvest souls as you seek to uncover the origins of the apocalypse that wiped out humanity.",
-    },
-  ],
-  note: "Each result includes rating, price, tags, related games, and a direct Steam store link.",
-};
-
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -85,10 +64,26 @@ function App() {
       }
       setLoading(false);
     } else {
-      setTimeout(() => {
-        setMessages((prev) => [...prev, DEAD_SPACE_REPLY]);
-        setLoading(false);
-      }, 1200);
+      try {
+        const res = await fetch("/llm/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-oss-120b",
+            messages: [{ role: "user", content: text }],
+          }),
+        });
+        if (!res.ok) throw new Error(`LLM request failed (${res.status})`);
+        const data = await res.json();
+        const reply = data.choices?.[0]?.message?.content ?? "No response.";
+        setMessages((prev) => [...prev, { role: "bot", text: reply }]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "bot", text: `Error: ${err.message}` },
+        ]);
+      }
+      setLoading(false);
     }
   }
 
