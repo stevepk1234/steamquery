@@ -10,6 +10,10 @@ export default defineConfig({
         target: "http://localhost:8000",
         rewrite: (path) => "/",
       },
+      "/api/apps": {
+        target: "http://localhost:8000",
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
       "/api": "http://localhost:8000",
     },
   },

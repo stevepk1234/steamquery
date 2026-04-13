@@ -37,7 +37,7 @@ function App() {
       .catch(() => setBackendStatus("Failed to connect to backend."));
   }, []);
 
-  function handleSend() {
+  async function handleSend() {
     const text = input.trim();
     if (!text || loading) return;
 
@@ -45,10 +45,51 @@ function App() {
     setInput("");
     setLoading(true);
 
-    setTimeout(() => {
-      setMessages((prev) => [...prev, DEAD_SPACE_REPLY]);
+    if (text.startsWith("/games ")) {
+      const names = text
+        .slice("/games ".length)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      try {
+        const results = await Promise.all(
+          names.map((name) =>
+            fetch(`/api/apps?name=${encodeURIComponent(name)}&limit=1`).then(
+              (res) => {
+                if (!res.ok) throw new Error(`No results for "${name}"`);
+                return res.json();
+              },
+            ),
+          ),
+        );
+        const games = results.flat().map((app) => ({
+          appId: app._id,
+          name: app.name,
+          blurb: app.tags ? app.tags.join(", ") : "",
+        }));
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "bot",
+            type: "recommendation",
+            intro: `Found ${games.length} game${games.length !== 1 ? "s" : ""}:`,
+            games,
+            note: "",
+          },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "bot", text: `Error: ${err.message}` },
+        ]);
+      }
       setLoading(false);
-    }, 1200);
+    } else {
+      setTimeout(() => {
+        setMessages((prev) => [...prev, DEAD_SPACE_REPLY]);
+        setLoading(false);
+      }, 1200);
+    }
   }
 
   const textareaRef = useRef(null);
