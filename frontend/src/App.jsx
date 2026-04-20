@@ -1,45 +1,118 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import GameBackground from "./GameBackground";
 import "./App.css";
-
-const DEAD_SPACE_REPLY = {
-  role: "bot",
-  type: "recommendation",
-  intro: "Here are my top picks based on your request:",
-  games: [
-    {
-      appId: 1693980,
-      name: "Dead Space",
-      blurb:
-        "A survival horror classic. You're engineer Isaac Clarke, stranded on a mining ship overrun by grotesque necromorphs. Strategic dismemberment, zero-gravity combat, and relentless atmosphere make this a must-play.",
-    },
-    {
-      appId: 2101960,
-      name: "Cronos: The New Dawn",
-      blurb:
-        "A whole new breed of survival horror emerges with Cronos: The New Dawn. Survive the brutal wastelands of the future, fight nightmarish merging creatures and jump back in time to harvest souls as you seek to uncover the origins of the apocalypse that wiped out humanity.",
-    },
-  ],
-  note: "Each result includes rating, price, tags, related games, and a direct Steam store link.",
-};
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
 
-  function handleSend() {
-    const text = input.trim();
-    if (!text) return;
+  const [loading, setLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState(null);
 
-    setMessages((prev) => [...prev, { role: "user", text }, DEAD_SPACE_REPLY]);
+  useEffect(() => {
+    fetch("/api/health")
+      .then((res) => res.json())
+      .then((data) => setBackendStatus(data.message))
+      .catch(() => setBackendStatus("Failed to connect to backend."));
+  }, []);
+
+  async function handleSend() {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    setMessages((prev) => [...prev, { role: "user", text }]);
     setInput("");
+    setLoading(true);
+
+    if (text.startsWith("/games ")) {
+      const names = text
+        .slice("/games ".length)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      try {
+        const results = await Promise.all(
+          names.map((name) =>
+            fetch(`/api/apps?name=${encodeURIComponent(name)}&limit=1`).then(
+              (res) => {
+                if (!res.ok) throw new Error(`No results for "${name}"`);
+                return res.json();
+              },
+            ),
+          ),
+        );
+        const games = results.flat().map((app) => ({
+          appId: app._id,
+          name: app.name,
+          blurb: app.tags ? app.tags.join(", ") : "",
+        }));
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "bot",
+            type: "recommendation",
+            intro: `Found ${games.length} game${games.length !== 1 ? "s" : ""}:`,
+            games,
+            note: "",
+          },
+        ]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "bot", text: `Error: ${err.message}` },
+        ]);
+      }
+      setLoading(false);
+    } else {
+      try {
+        const res = await fetch("/llm/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gpt-oss-120b",
+            messages: [{ role: "user", content: text }],
+          }),
+        });
+        if (!res.ok) throw new Error(`LLM request failed (${res.status})`);
+        const data = await res.json();
+        const reply = data.choices?.[0]?.message?.content ?? "No response.";
+        setMessages((prev) => [...prev, { role: "bot", text: reply }]);
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "bot", text: `Error: ${err.message}` },
+        ]);
+      }
+      setLoading(false);
+    }
+  }
+
+  const textareaRef = useRef(null);
+
+  const autoResize = useCallback((el) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+
+  function handleInput(e) {
+    setInput(e.target.value);
+    autoResize(e.target);
   }
 
   function handleKeyDown(e) {
-    if (e.key === "Enter") handleSend();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+    }
   }
 
   return (
     <>
+      <GameBackground visible={messages.length === 0} slow={input.length > 0} />
       <div className="topbar">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
           <circle
@@ -56,6 +129,9 @@ function App() {
         <span className="logo-text">
           Steam<span>Rec</span>
         </span>
+        {backendStatus && (
+          <span className="backend-status">{backendStatus}</span>
+        )}
       </div>
 
       <div className="chat-area">
@@ -65,9 +141,21 @@ function App() {
               What kind of game are you looking for today?
             </h1>
             <p className="hero-subtitle">
-              Describe a vibe, a genre, or a game you loved — I'll find
-              something for you.
+              Describe a vibe, genre, or game you loved and we'll find the
+              perfect fit for you.
             </p>
+            <div className="input-bar hero-input">
+              <div className="input-inner">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  placeholder="Describe a game you'd like to play..."
+                  value={input}
+                  onChange={handleInput}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+            </div>
           </div>
         ) : (
           <div className="chat-column">
@@ -112,28 +200,36 @@ function App() {
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="message bot">
+                <div className="avatar bot-avatar">SR</div>
+                <div className="bubble bot-bubble">
+                  <div className="typing-indicator">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="input-bar">
-        <div className="input-inner">
-          <input
-            type="text"
-            placeholder="Describe a game you'd like to play..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button
-            className="send-button"
-            onClick={handleSend}
-            disabled={!input.trim()}
-          >
-            ↑
-          </button>
+      {messages.length > 0 && (
+        <div className="input-bar">
+          <div className="input-inner">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              placeholder="Describe a game you'd like to play..."
+              value={input}
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
