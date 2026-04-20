@@ -1,4 +1,4 @@
-from pydantic import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -7,9 +7,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # MongoDB config
-    MONGO_URI: str
-    MONGO_PORT: str
-    MONGO_DB: str
+    # API config
+    LIMIT: int = 3
 
 settings = Settings()
