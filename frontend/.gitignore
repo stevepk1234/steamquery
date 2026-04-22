@@ -23,3 +23,4 @@ CHANGES.md
 *.njsproj
 *.sln
 *.sw?
+llm_example
