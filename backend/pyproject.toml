@@ -5,9 +5,10 @@ description = "Backend API for SteamQuery"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.135.1",
+    "fastapi[standard]>=0.135.1",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.14.0",
+    "httpx>=0.28.0",
     "pymongo>=4.16.0",
     "ruff>=0.15.5",
 ]

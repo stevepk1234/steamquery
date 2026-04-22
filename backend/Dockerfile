@@ -1,4 +1,6 @@
 FROM python:3.13-slim
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
 # Install Dependencies
@@ -14,4 +16,4 @@ COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable
 
-CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+CMD ["uv", "run", "fastapi", "run", "--workers", "4", "--port", "3000", "app/main.py"]

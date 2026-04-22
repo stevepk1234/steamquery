@@ -59,13 +59,16 @@ function GameBackground({ visible, slow }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
-  const images = GAME_IDS.map((id) => (
+  const EAGER_COUNT = 7; // first visible row
+
+  const images = GAME_IDS.map((id, i) => (
     <img
       key={id}
       src={`https://cdn.akamai.steamstatic.com/steam/apps/${id}/header.jpg`}
       alt=""
       draggable={false}
-      loading="lazy"
+      loading={i < EAGER_COUNT ? "eager" : "lazy"}
+      fetchPriority={i < EAGER_COUNT ? "high" : "auto"}
     />
   ));
 

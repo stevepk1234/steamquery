@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 import os
 
-from router.apps import apps_router
+from app.router.apps import apps_router
+from app.router.llm import llm_router
 
 MONGO_URI: str = os.getenv("MONGO_URI", "")
 DATABASE_NAME: str = os.getenv("MONGO_DB", "")
@@ -15,7 +16,8 @@ app = FastAPI()
 origins = [
     "http://localhost",
     "http://localhost:8000",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
@@ -28,4 +30,10 @@ app.add_middleware(
 mongo_client = AsyncMongoClient(host=MONGO_URI)
 apps = mongo_client[DATABASE_NAME][COLLECTION_NAME]
 
+
 app.include_router(apps_router)
+app.include_router(llm_router)
+
+@app.get("/health")
+async def health():
+    return {"message": "Backend running as expected."}

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
-from models.models import App
+from app.models.models import App
 from typing import List
-from config.config import settings
+from app.config.config import settings
 
 apps_router = APIRouter(prefix="/apps", tags=["apps"])
 

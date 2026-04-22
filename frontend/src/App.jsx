@@ -9,6 +9,17 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState(null);
 
+  const responseStarters = [
+    "Here are my top picks based on your request:",
+    "You've reminded me of a few different games:",
+    "I think I know a few games like that...",
+    "What do you think of these?",
+    "I actually had been thinking about a few games just like that!",
+    "Hope you like these <3",
+    "Do these fit what you're thinking of?",
+    "Not many people have taste like you do:"
+  ]
+
   useEffect(() => {
     fetch("/api/health")
       .then((res) => res.json())
@@ -24,25 +35,26 @@ function App() {
     setInput("");
     setLoading(true);
 
-    if (text.startsWith("/games ")) {
-      const names = text
-        .slice("/games ".length)
+    if (text.startsWith("/name ") || text.startsWith("/tag ")) {
+      const isName = text.startsWith("/name ");
+      const terms = text
+        .slice(isName ? "/name ".length : "/tag ".length)
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
       try {
         const results = await Promise.all(
-          names.map((name) =>
-            fetch(`/api/apps?name=${encodeURIComponent(name)}&limit=1`).then(
-              (res) => {
-                if (!res.ok) throw new Error(`No results for "${name}"`);
-                return res.json();
-              },
-            ),
-          ),
+          terms.map(async (term) => {
+            const url = isName
+              ? `/api/apps/name/${encodeURIComponent(term)}`
+              : `/api/apps/tag/${encodeURIComponent(term)}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`No results for "${term}"`);
+            return res.json();
+          }),
         );
         const games = results.flat().map((app) => ({
-          appId: app._id,
+          appId: app.appid,
           name: app.name,
           blurb: app.tags ? app.tags.join(", ") : "",
         }));
@@ -75,8 +87,21 @@ function App() {
         });
         if (!res.ok) throw new Error(`LLM request failed (${res.status})`);
         const data = await res.json();
-        const reply = data.choices?.[0]?.message?.content ?? "No response.";
-        setMessages((prev) => [...prev, { role: "bot", text: reply }]);
+        const games = (data.games ?? []).map((g) => ({
+          appId: g.appid,
+          name: g.name,
+          blurb: g.tags ? g.tags.join(", ") : "",
+        }));
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "bot",
+            type: "recommendation",
+            intro: responseStarters[Math.floor(Math.random() * responseStarters.length)],
+            games,
+            note: "",
+          },
+        ]);
       } catch (err) {
         setMessages((prev) => [
           ...prev,
@@ -88,6 +113,11 @@ function App() {
   }
 
   const textareaRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   const autoResize = useCallback((el) => {
     if (!el) return;
@@ -164,7 +194,18 @@ function App() {
                 <div
                   className={`avatar ${msg.role === "bot" ? "bot-avatar" : "user-avatar"}`}
                 >
-                  {msg.role === "bot" ? "SR" : "You"}
+                  {msg.role === "bot" ? (
+                    <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+                      <circle cx="14" cy="14" r="13" stroke="#1a9fff" strokeWidth="1.5" fill="rgba(26,159,255,0.12)" />
+                      <circle cx="14" cy="14" r="6" fill="rgba(26,159,255,0.3)" />
+                      <circle cx="14" cy="14" r="2.5" fill="#66c0f4" />
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="8" r="4" fill="#72b83f" />
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#72b83f" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  )}
                 </div>
                 <div
                   className={`bubble ${msg.role === "bot" ? "bot-bubble" : "user-bubble"}`}
@@ -202,7 +243,12 @@ function App() {
             ))}
             {loading && (
               <div className="message bot">
-                <div className="avatar bot-avatar">SR</div>
+                <div className="avatar bot-avatar">
+                    <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+                      <circle cx="14" cy="14" r="13" stroke="#1a9fff" strokeWidth="1.5" fill="rgba(26,159,255,0.12)" />
+                      <circle cx="14" cy="14" r="6" fill="rgba(26,159,255,0.3)" />
+                      <circle cx="14" cy="14" r="2.5" fill="#66c0f4" />
+                    </svg></div>
                 <div className="bubble bot-bubble">
                   <div className="typing-indicator">
                     <span />
@@ -212,6 +258,7 @@ function App() {
                 </div>
               </div>
             )}
+            <div ref={bottomRef} />
           </div>
         )}
       </div>

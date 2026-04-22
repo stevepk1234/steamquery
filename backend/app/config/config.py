@@ -7,6 +7,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # LLM
+    LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = "https://llm-api.arc.vt.edu/api/v1"
+
     # API config
     LIMIT: int = 3
 

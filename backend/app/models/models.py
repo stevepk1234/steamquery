@@ -1,8 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 class App(BaseModel):
-    appid: int              # uid
+    model_config = ConfigDict(populate_by_name=True)
+
+    appid: int = Field(alias="_id")    # uid
     added_date: str         # ISO 8601 format YYYY-MM-DDTHH:mm:ss.SSSSSS±HH:MM
     dlc: list[int]          # array of appids
     drm: bool               # certification digital rights management
