@@ -6,7 +6,6 @@ import json
 import re
 
 from app.config.config import settings
-from app.main import apps
 
 llm_router = APIRouter(prefix="/llm", tags=["llm"])
 
@@ -67,6 +66,8 @@ async def chat_completions(request: ChatRequest):
         game_names = parsed.get("games", [])
     except (json.JSONDecodeError, AttributeError):
         raise HTTPException(status_code=502, detail=f"LLM returned unexpected format: {content}")
+
+    from app.main import apps
 
     results = []
     for name in game_names:
