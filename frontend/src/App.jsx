@@ -2,6 +2,26 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import GameBackground from "./GameBackground";
 import "./App.css";
 
+async function fetchPrice(appId) {
+  try {
+    const res = await fetch(
+      `https://store.steampowered.com/api/appdetails/?appids=${appId}&cc=us&filters=price_overview`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const entry = data[String(appId)];
+    if (!entry?.success || !entry.data?.price_overview) return null;
+    return entry.data.price_overview;
+  } catch {
+    return null;
+  }
+}
+
+async function attachPrices(games) {
+  const prices = await Promise.all(games.map((g) => fetchPrice(g.appId)));
+  return games.map((g, i) => ({ ...g, price: prices[i] }));
+}
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -53,11 +73,12 @@ function App() {
             return res.json();
           }),
         );
-        const games = results.flat().map((app) => ({
+        const rawGames = results.flat().map((app) => ({
           appId: app.appid,
           name: app.name,
           blurb: app.tags ? app.tags.join(", ") : "",
         }));
+        const games = await attachPrices(rawGames);
         setMessages((prev) => [
           ...prev,
           {
@@ -87,11 +108,12 @@ function App() {
         });
         if (!res.ok) throw new Error(`LLM request failed (${res.status})`);
         const data = await res.json();
-        const games = (data.games ?? []).map((g) => ({
+        const rawGames = (data.games ?? []).map((g) => ({
           appId: g.appid,
           name: g.name,
           blurb: g.tags ? g.tags.join(", ") : "",
         }));
+        const games = await attachPrices(rawGames);
         setMessages((prev) => [
           ...prev,
           {
@@ -230,6 +252,14 @@ function App() {
                             />
                             <span className="chip-name">{g.name}</span>
                             <span className="chip-blurb">{g.blurb}</span>
+                            {g.price && (
+                              <span className="chip-price">
+                                {g.price.discount_percent > 0 && (
+                                  <span className="chip-discount">-{g.price.discount_percent}%</span>
+                                )}
+                                {g.price.final_formatted}
+                              </span>
+                            )}
                           </a>
                         ))}
                       </div>
