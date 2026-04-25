@@ -4,14 +4,9 @@ import "./App.css";
 
 async function fetchPrice(appId) {
   try {
-    const res = await fetch(
-      `https://store.steampowered.com/api/appdetails/?appids=${appId}&cc=us&filters=price_overview`
-    );
+    const res = await fetch(`/api/apps/price/${appId}`);
     if (!res.ok) return null;
-    const data = await res.json();
-    const entry = data[String(appId)];
-    if (!entry?.success || !entry.data?.price_overview) return null;
-    return entry.data.price_overview;
+    return await res.json();
   } catch {
     return null;
   }
@@ -76,7 +71,7 @@ function App() {
         const rawGames = results.flat().map((app) => ({
           appId: app.appid,
           name: app.name,
-          blurb: app.tags ? app.tags.join(", ") : "",
+          tags: app.tags ?? [],
         }));
         const games = await attachPrices(rawGames);
         setMessages((prev) => [
@@ -111,7 +106,7 @@ function App() {
         const rawGames = (data.games ?? []).map((g) => ({
           appId: g.appid,
           name: g.name,
-          blurb: g.tags ? g.tags.join(", ") : "",
+          tags: g.tags ?? [],
         }));
         const games = await attachPrices(rawGames);
         setMessages((prev) => [
@@ -251,7 +246,6 @@ function App() {
                               loading="lazy"
                             />
                             <span className="chip-name">{g.name}</span>
-                            <span className="chip-blurb">{g.blurb}</span>
                             {g.price && (
                               <span className="chip-price">
                                 {g.price.discount_percent > 0 && (
@@ -260,6 +254,11 @@ function App() {
                                 {g.price.final_formatted}
                               </span>
                             )}
+                            <div className="chip-tags">
+                              {g.tags.slice(0, 3).map((tag, idx) => (
+                                <span key={idx} className="chip-tag">{tag}</span>
+                              ))}
+                            </div>
                           </a>
                         ))}
                       </div>

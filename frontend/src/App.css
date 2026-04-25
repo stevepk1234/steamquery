@@ -250,21 +250,46 @@
     color: #66c0f4;
 }
 
-.chip-blurb {
-    padding: 0 10px 6px;
-    font-size: 12px;
+.chip-tags {
+    padding: 0 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.chip-tag {
+    font-size: 11px;
     color: #7a9bb5;
-    line-height: 1.5;
+    border: 1px solid rgba(61, 90, 138, 0.45);
+    border-radius: 4px;
+    padding: 2px 6px;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.chip-tag:hover {
+    border-color: #66c0f4;
+    background: rgba(26, 159, 255, 0.1);
+    color: #c6d4df;
 }
 
 .chip-price {
-    padding: 0 10px 10px;
-    font-size: 12px;
+    align-self: flex-start;
+    margin: 0 0 6px 8px;
+    font-size: 11px;
     font-weight: 700;
     color: #a3cf6f;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
+    border: 1px solid rgba(163, 207, 111, 0.4);
+    border-radius: 4px;
+    padding: 2px 6px;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.chip-price:hover {
+    border-color: #a3cf6f;
+    background: rgba(163, 207, 111, 0.1);
 }
 
 .chip-discount {
@@ -272,7 +297,7 @@
     color: #a3cf6f;
     padding: 1px 5px;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .rec-note {
