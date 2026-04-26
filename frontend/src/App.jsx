@@ -23,7 +23,9 @@ async function attachPrices(games) {
 }
 
 function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() =>
+    JSON.parse(localStorage.getItem("chat") ?? "[]")
+  );
   const [input, setInput] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -37,8 +39,17 @@ function App() {
     "I actually had been thinking about a few games just like that!",
     "Hope you like these <3",
     "Do these fit what you're thinking of?",
-    "Not many people have taste like you do:"
+    "Not many people have taste like you do:",
+    "You've got pretty good taste, anyone ever told you that?",
+    "And this ain't even half of what I know...",
+    "You should make a game of your own!",
+    "These are great, I know it (played them myself):",
+    "They'll write stories about your tastes:",
   ]
+
+  useEffect(() => {
+    localStorage.setItem("chat", JSON.stringify(messages));
+  }, [messages]);
 
   useEffect(() => {
     fetch("/api/health")
@@ -178,7 +189,11 @@ function App() {
           <circle cx="14" cy="14" r="6" fill="rgba(26,159,255,0.3)" />
           <circle cx="14" cy="14" r="2.5" fill="#66c0f4" />
         </svg>
-        <span className="logo-text">
+        <span
+          className="logo-text"
+          onClick={() => { setMessages([]); localStorage.removeItem("chat"); }}
+          style={{ cursor: "pointer" }}
+        >
           Steam<span>Rec</span>
         </span>
         {backendStatus && (
